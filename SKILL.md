@@ -1,13 +1,13 @@
 ---
 name: code-review-raccoon
-description: 'Set up repo-specific code review that traces changes through their callers, checks security and business rules, and backs findings with evidence. Point this skill at a target repo and it interrogates the architecture, then writes a repo-specific RULES.md and a review SKILL.md into that repo. Trigger: code-raccoon, review, code review.'
+description: "Teach an agent to build evidence-backed code review that traces changes through their callers, checks security and business rules, and backs findings with evidence. Point this skill at a target repo: it interrogates the architecture and teaches the agent to write a repo-specific RULES.md into that repo and to build its own global code-review skill in its own skill system. This file is never copied — the skill format is the agent's. Trigger: code-raccoon, review, code review."
 ---
 
 # code-review-raccoon — setup skill
 
 You are setting up code review in a target repository. The goal is evidence-backed code review grounded in the repo’s real architecture: trace changes through callers, check security and business rules, and make unverified areas explicit. Everything you need is in this file — it is fully self-contained; do not load any external prompt, vault, or path.
 
-Division of labour: this skill generates → `RULES.md` stores the rules (written into the target repo) → the repo's own review `SKILL.md` runs the review and emits the fixed report in the conversation, never to a file. Plain discussion sessions load neither.
+Division of labour: this skill teaches → `RULES.md` stores the rules (written into the target repo) → the review skill you build in Step 5 — installed globally in your own skill system, in your own format — runs the review and emits the fixed report in the conversation, never to a file. Plain discussion sessions load neither.
 
 ## Input contract (do this FIRST)
 
@@ -16,17 +16,22 @@ Division of labour: this skill generates → `RULES.md` stores the rules (writte
 
 ## Step 0 — Conflict guards (stop and resolve with the user)
 
-Check the target repo for BOTH of the following:
+Check BOTH locations separately:
 
-1. **A review skill already exists** — a `SKILL.md`, `skills/code-review/`, or similar carrying code-review procedure.
-2. **A rules file already exists** — `RULES.md`, or an `AGENTS.md` that already carries code-review rules.
+1. **A review skill already exists in your own skill system** — a `code-review` skill, or similar carrying code-review procedure, wherever your skills live.
+2. **A rules file already exists in the target repo** — `RULES.md`, or an `AGENTS.md` that already carries code-review rules.
 
-If either exists: **STOP. Do not touch it.** Report to the user and resolve together:
+For the repo rules file (location 2): **STOP. Do not touch it.** Report to the user and resolve together:
 
-- "Review skill exists at `<path>` — covers: `<one-line summary>`."
 - "RULES.md exists at `<path>` — covers: `<one-line summary>`."
 
-Then ask the user how to proceed: leave it alone, revise the existing file (explicit request only), or abort. Never overwrite, never merge, never rewrite an existing file. An existing file is the owner's; your job was to create, not to replace. If a skill-name conflict with another installed review skill surfaces later (trigger clash), the same rule applies: stop and resolve with the user.
+Then ask the user how to proceed: leave it alone, revise the existing file (explicit request only), or abort. Never overwrite, never merge, never rewrite an existing file. An existing file is the owner's; your job was to create, not to replace.
+
+For your own skill (location 1): **STOP. Do not touch it.** Report to the user and resolve together:
+
+- "Review skill exists at `<path>` — covers: `<one-line summary>`."
+
+A rules file only makes sense as a pair with its review skill — writing a fresh `RULES.md` against an installed skill either duplicates rules it already reads or strands a rules file nothing runs against. Never rebuild, never overwrite, never merge, never rewrite the skill — ours or anyone's. Ask the user how to proceed: leave it alone (and stop setup), revise the skill (explicit request only), or abort. If the skill's provenance is unknown, say so in the report rather than inferring it.
 
 If neither exists: proceed.
 
@@ -42,7 +47,7 @@ Read the codebase and answer, with evidence:
 - Any existing AGENTS.md, CONTRIBUTING.md, .cursorrules, or similar — note them, but do NOT put review rules in them; RULES.md is the dedicated rules file
 - Call-graph shape: are deep chained calls (A() -> B() -> C() -> D()) common? Long if/else chains? Prop drilling?
 - Merge shape: multi-branch / multi-agent workflows? Do conflict resolutions appear in recent history (`git log --merges`)? — this decides how prominent the conflict-audit rule must be
-- Branch topology: inspect branches and upstreams for context. Never bake a base into generated files; the owner confirms the base or starting point for each review, regardless of topology.
+- Branch topology: inspect branches and upstreams for context. Never bake a base into `RULES.md` or the review skill; the owner confirms the base or starting point for each review, regardless of topology.
 
 If a Step-1 finding is uncertain, record it as an open question in the file rather than guessing.
 
@@ -94,30 +99,30 @@ CONFLICT RESOLUTION INTEGRITY (multi-agent rule — a different agent will audit
 ## Step 3 — Prune and localise
 
 - Delete any rule that does not apply to this repo's stack (e.g. "prop drilling" if there is no UI layer) — dead rules teach agents to ignore the file
-- Replace generic paths with the repo's real ones: name the actual DI wiring file, the actual test command, the actual modules with known boundaries
+- Replace generic paths with the repo's real ones: name the actual DI wiring file, the actual modules with known boundaries, and record the repo's actual test command/runner — the global review skill reads `<test command>` from `RULES.md` at review time, so record it here rather than assuming it anywhere else
 - Where Step 1 found an existing config conflict, note it in an "Open questions" section instead of silently overriding
 
-## Step 4 — Keep the generated files out of git
+## Step 4 — Keep RULES.md out of git
 
-Before either generated file is created (including Step 2), carry out the destination and exclusion checks below. The step numbering does not grant permission to write first.
+Before RULES.md is created (including Step 2), carry out the destination and exclusion checks below. The step numbering does not grant permission to write first.
 
-RULES.md and the review SKILL.md (Step 5) are local-only agent tooling: never stage, commit or touch the index for them. Before writing, check each exact destination is not already tracked or occupied; if it is, stop and resolve with the owner. Do not hide or overwrite a tracked file.
+RULES.md is local-only agent tooling: never stage, commit or touch the index for it. Nothing else is written into the repo — the review skill lives in your own skill system, not here. Check the exact destination is not already tracked or occupied; if it is, stop and resolve with the owner. Do not hide or overwrite a tracked file.
 
-Prefer the repo's local Git exclude file (`git rev-parse --git-path info/exclude`) instead of changing `.gitignore`. Preserve existing entries and append exact, anchored, properly escaped repo-root-relative patterns for the generated paths only when needed. A Git exclude file can be shared between worktrees; report its actual path. For each path, verify the effective exclusion with `git check-ignore -v -- <path>` (ensure the matching rule is not a negation) and confirm it is not tracked with `git ls-files --error-unmatch -- <path>` (exit 1 means untracked; other errors are not proof). After writing, verify neither appears in `git status --porcelain --untracked-files=all`. Absence from status alone does not prove a file is ignored. If another rule overrides the exclusion, or Git configuration or paths prevent safe verification, stop and report what could not be verified; do not silently edit `.gitignore` or claim success. Report any other visible setup changes honestly; do not claim the entire working tree is clean.
+Prefer the repo's local Git exclude file (`git rev-parse --git-path info/exclude`) instead of changing `.gitignore`. Preserve existing entries and append exact, anchored, properly escaped repo-root-relative patterns for `RULES.md` only when needed. A Git exclude file can be shared between worktrees; report its actual path. Verify the effective exclusion with `git check-ignore -v -- <path>` (ensure the matching rule is not a negation) and confirm it is not tracked with `git ls-files --error-unmatch -- <path>` (exit 1 means untracked; other errors are not proof). After writing, verify `RULES.md` does not appear in `git status --porcelain --untracked-files=all`. Absence from status alone does not prove a file is ignored. If another rule overrides the exclusion, or Git configuration or paths prevent safe verification, stop and report what could not be verified; do not silently edit `.gitignore` or claim success. Report any other visible setup changes honestly; do not claim the entire working tree is clean.
 
-## Step 5 — Write the target repo's review SKILL.md
+## Step 5 — Build the review skill in your own skill system
 
-Write a second file alongside RULES.md: the review skill for THAT repo. It must be self-contained — no references back to any vault, prompt, or external path. Exact content to write:
+Build ONE global `code-review` skill in your own skill system — where your skills live, in your own skill format (frontmatter, triggers, path conventions: your architecture, not a fixed one). It is installed once and works against any repo's `RULES.md`; do NOT write it into the target repo, and do NOT copy this file. The content below is the procedure to teach — adapt it to your skill system's conventions, keep its logic intact. The procedure must be self-contained from its own location — no references back to any vault, prompt, or external path except a repo's `RULES.md`, which it locates at review time from the repo path in the request.
 
 ````markdown
 ---
 name: code-review
-description: Review changes in this repo against its RULES.md. Trigger: `review` or `!code-review`.
+description: Review changes in a repo against its RULES.md. Trigger: `review` or `!code-review`.
 ---
 
-# Code Review (this repo)
+# Code Review — <repo>
 
-You are doing code review work in <repo>. RULES.md at the repo root is the authority — you supply the report form, it supplies the rules.
+You are doing code review work in <repo>. RULES.md at that repo's root is the authority — you supply the report form, it supplies the rules.
 
 ## Procedure
 
@@ -212,23 +217,24 @@ Filling rules:
 - Tests and linters never run before or during review. The fixer offers them only after fixes are applied; the user decides.
 - Stopping to ask is always allowed — ambiguity, an impossible step, an unexpected discovery mid-fix: report and wait. Proceeding on an unapproved deviation is never allowed.
 - Never modify RULES.md — it is the owner's. A rules change is a separate, explicit request.
-- Never commit or `git add` RULES.md or this skill; both stay git-ignored.
+- Never commit or `git add` RULES.md; it stays git-ignored. The review skill itself lives in your own skill system, never in the repo.
 - The report goes to the conversation only, never to a file.
 ````
 
-Replace `<repo>` and `<test command>` with the target repo's real name and actual test command during Step 3 localisation. Do not bake any branch name into this file — scope and base or range are confirmed per review (Procedure step 1). If the target repo already has a review skill (Step 0 guard), do not write this file — stop and resolve with the user as Step 0 prescribes.
+`<repo>` is supplied per review from the request path. `<test command>` is read from that repo's `RULES.md` (recorded during Step 3 localisation) — never baked into the skill. Trigger, naming and skill-file format follow your own skill system's conventions; keep the triggers `review` and `!code-review` as the canonical ones. Do not bake any branch name into the skill — scope and base or range are confirmed per review (Procedure step 1).
 
 ## Step 6 — Wire the loading
 
-Both generated files load only during review work, via the target repo's SKILL.md (Step 5): the skill takes the repo path, asks the owner to confirm the review scope and base or range each time, reads RULES.md, runs the review, and emits the report template it carries itself in the conversation. They MUST NOT be injected into plain discussion sessions. Confirm in your reply how a chat-only session avoids paying for it.
+Both outputs load only during review work: the review skill you built in Step 5 (globally in your own skill system) takes the repo path, asks the owner to confirm the review scope and base or range each time, reads that repo's `RULES.md`, runs the review, and emits the report template it carries in the conversation. Nothing is injected into the target repo or plain discussion sessions. Confirm in your reply how a chat-only session avoids paying for it, and where the skill was installed.
 
 ## Report back
 
 Report to the user:
 
-- Both file paths (RULES.md and the review SKILL.md)
+- The `RULES.md` path (target repo root)
+- Where the review skill was installed — the exact path in your own skill system — and its trigger
 - How many rules survived Step 3 pruning
 - Any open questions from Step 1
-- Effective ignore and tracking checks for each file, the Git exclude file path, status evidence, and any other visible setup changes; report any verification that failed
-- If Step 0 hit an existing file or a skill conflict — your stop-and-resolve report instead of a rewrite
-- Confirmation: no tests or linters were run during setup; test command recorded as `<command>` for the fixer's post-fix offer only
+- Effective ignore and tracking checks for `RULES.md`, the Git exclude file path, status evidence, and any other visible setup changes; report any verification that failed
+- If Step 0 hit an existing rules file or an existing review skill — your stop-and-resolve report instead of a rewrite
+- Confirmation: no tests or linters were run during setup; test command recorded in `RULES.md` as `<command>` for the fixer's post-fix offer only
