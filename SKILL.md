@@ -1,6 +1,6 @@
 ---
 name: code-review-raccoon
-description: Set up repo-specific code review that traces changes through their callers, checks security and business rules, and backs findings with evidence. Point this skill at a target repo and it interrogates the architecture, then writes a repo-specific RULES.md and a review SKILL.md into that repo. Trigger: code-raccoon, review, code review.
+description: 'Set up repo-specific code review that traces changes through their callers, checks security and business rules, and backs findings with evidence. Point this skill at a target repo and it interrogates the architecture, then writes a repo-specific RULES.md and a review SKILL.md into that repo. Trigger: code-raccoon, review, code review.'
 ---
 
 # code-review-raccoon — setup skill
