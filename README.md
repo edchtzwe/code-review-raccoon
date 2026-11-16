@@ -4,7 +4,7 @@ Unlike the other code rodent, this does not cost you $90 per month per member...
 
 ## What is this?
 
-A single self-contained agent skill that sets up CodeRabbit-quality code review in any repository. Point your agent at `SKILL.md`, name a target repo, and it interrogates the repo's real architecture, then writes two files into that repo:
+A self-contained agent skill that sets up repo-specific code review: tracing changes through their callers, checking security and business rules, and backing findings with evidence. Point your agent at `SKILL.md`, name a target repo, and it interrogates the repo's real architecture, then writes two files into that repo:
 
 - **`RULES.md`** — repo-specific review rules (OWASP Top 10, trace-before-you-touch, conflict-resolution integrity), pruned and localised to the stack
 - **`SKILL.md`** — the review skill that runs against those rules and emits a fixed report template

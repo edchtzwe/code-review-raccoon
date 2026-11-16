@@ -1,11 +1,11 @@
 ---
 name: code-review-raccoon
-description: Set up CodeRabbit-quality code review in any repo. Point this skill at a target repo and it interrogates the architecture, then writes a repo-specific RULES.md and a review SKILL.md into that repo. Trigger: code-raccoon, review, code review.
+description: Set up repo-specific code review that traces changes through their callers, checks security and business rules, and backs findings with evidence. Point this skill at a target repo and it interrogates the architecture, then writes a repo-specific RULES.md and a review SKILL.md into that repo. Trigger: code-raccoon, review, code review.
 ---
 
 # code-review-raccoon — setup skill
 
-You are setting up code review in a target repository. The goal is CodeRabbit-level review quality without the price: rules that reference that repo's real architecture, not platitudes. Everything you need is in this file — it is fully self-contained; do not load any external prompt, vault, or path.
+You are setting up code review in a target repository. The goal is evidence-backed code review grounded in the repo’s real architecture: trace changes through callers, check security and business rules, and make unverified areas explicit. Everything you need is in this file — it is fully self-contained; do not load any external prompt, vault, or path.
 
 Division of labour: this skill generates → `RULES.md` stores the rules (written into the target repo) → the repo's own review `SKILL.md` runs the review and emits the fixed report in the conversation, never to a file. Plain discussion sessions load neither.
 
