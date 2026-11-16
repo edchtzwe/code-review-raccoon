@@ -128,9 +128,10 @@ You are doing code review work in <repo>. RULES.md at the repo root is the autho
 5. **Dependency trace** — prove trace-before-you-touch ran: signatures changed → callers found/updated; business-rule changes → consumers checked. Anything not verified goes in the ⚠️ Unverified line explicitly — silence is not an option.
 6. **Conflict audit** — for every merge/commit that resolved conflicts, re-examine each conflicted region against BOTH parents (`git show <parent>:<file>`). Assume the resolver may have cut corners: a clean diff proves nothing. Flag as suspect — weird, not quite right, or straight-up bullshit: one parent's changes vanished without a stated reason; a side taken wholesale without comparing intent; lines deleted just to clear markers; resolution claimed but never verified; result compiles but contradicts a parent's intent. Every suspect resolution is a finding citing the Conflict resolution integrity rule. Regions you could not compare go under ⚠️ Unverified — never silently pass them.
 7. **Business-rule adherence (BR pass)** — intent gathering is provider-agnostic: use the team's available forge, tracker, tools and authorization; do not assume a specific provider or credential. Always read commit messages for the confirmed review scope as context. Use ticket or acceptance-criteria content already supplied or available; otherwise, when a ticket can be retrieved using available tools and authorization, retrieve it. If no ticket or criteria are available, ask once: "Want to provide the ticket or acceptance criteria?" Declining is valid; proceed using commit-message intent only and report that limit. Compare implementation against stated acceptance criteria, citing evidence for unmet criteria; passing tests alone does not prove acceptance. Do not invent criteria or claim full acceptance-criteria coverage when none were available. Number these findings `BR-1`, `BR-2`, …, quote the criterion in the Rule column, and identify the intent source in the report.
-8. **Report** — emit the template below in the conversation only, never to a file. Sort findings by severity and number each ID series in that order.
+8. **Report** — emit the template below in the conversation only, never to a file. Sort findings by severity and number each ID series in that order. Suggested improvements get their own section AFTER the Fix Prompt — never inside it, never mixed into the findings.
 9. **Fix round** — when a report is handed back:
    - First act: re-state your understanding of each finding (one line each) before editing anything.
+   - **Suggestions are not findings.** Do not act on one during a fix round, and do not slip it in as a bonus repair. If the owner asks for one explicitly, it becomes a separate change with its own scope.
    - **Approved steps are exhaustive.** If a prescribed edit turns out wrong or impossible (applied migration, moved file, step already done), or the fix shape is ambiguous (index vs. query change), STOP before creating or editing anything: report why the step fails, propose options, wait for approval. Never substitute your own mechanism, however reasonable — improvisation outside the approved file table is exactly what this rule prevents. Stopping to ask is always allowed; proceeding on an unapproved deviation is not.
    - Work findings by ID, re-trace anything you changed, reply per-finding: FIXED / SKIPPED+why. When every finding is handled, OFFER — never auto-run — tests and lint: ask the user whether to run <test command> and the linters; run nothing until they say yes.
    - **Open Questions belong to the owner** — do not act on them, do not fix them opportunistically while doing other findings.
@@ -185,6 +186,15 @@ Exclusions proposed — your call: <F# or BR-# (<reason>)> — the reviewer prop
 > owner — do not act on them. Do not expand scope beyond findings.
 ```
 
+## Suggested Improvements (observations, not part of the fix)
+| # | File:Line | Suggestion | Benefit / trade-off |
+|---|-----------|------------|---------------------|
+| S1 | src/api/query.ts:40-52 | Accept optional `since` and `until` filters — min only, max only, or both | One endpoint serves every window; costs a branch in the query builder |
+| S2 | src/jobs/retry.py:12-31 | Move the backoff calculation behind a pure helper | The schedule becomes testable without sleeping through it |
+
+Things the review noticed that could be done better. They are not defects, do not count toward the verdict, and are never part of the Fix Prompt. Nothing here gets fixed in a fix round — ask for one explicitly and it becomes its own change. Write `None.` when there are none, so the pass is visible.
+```
+
 Filling rules:
 - `File:Line` must be a line range — a path without lines forces the fixer to re-search. If a missing implementation has no precise changed line, cite the nearest relevant existing code and explain the absence; if no relevant location can be identified, record it as unverified instead of inventing a location.
 - A finding that can't name its rule is an Open Question, not a finding.
@@ -192,9 +202,13 @@ Filling rules:
 - Wontfix/accepted-risk findings stay in the report, struck or excluded via the Fix Prompt — never silently deleted.
 - Exclusion provenance: the fix prompt's "Do not touch" list may only contain owner-confirmed exclusions. Everything else the reviewer would skip is surfaced as `Exclusions proposed — your call: F4 (reason)` — the reviewer proposes, the owner disposes; confirmed exclusions become "Do not touch" items on the next round.
 - The fix prompt always carries these guards: re-trace, test-offer (ask, never auto-run), scope fence, stop-before-impossible-or-ambiguous, Open Questions fence.
+- A suggestion must cite `File:Line` and a concrete benefit or trade-off. "Consider refactoring this" with no location and no reason is noise, not a suggestion.
+- Suggestions draw on everything the review actually read: the confirmed diff, callers traced, merge parents compared, and related modules opened for evidence. Anything worth doing that the reviewer sees is fair game — the SQL filter case is one example, not the boundary.
+- Suggestions never become findings, never affect the verdict or the severity counts, and never appear in the Fix Prompt or in "Exclusions proposed". A fix round leaves them untouched unless the owner asks.
 
 ## Guards
 - Review is read-only against the repo. Fixes happen only when a Fix Prompt is handed back.
+- Suggested improvements sit after the Fix Prompt and outside it. They are not defects, do not affect the verdict, and are actioned only on a separate, explicit request.
 - Tests and linters never run before or during review. The fixer offers them only after fixes are applied; the user decides.
 - Stopping to ask is always allowed — ambiguity, an impossible step, an unexpected discovery mid-fix: report and wait. Proceeding on an unapproved deviation is never allowed.
 - Never modify RULES.md — it is the owner's. A rules change is a separate, explicit request.
