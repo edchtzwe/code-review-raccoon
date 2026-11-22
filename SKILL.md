@@ -66,6 +66,9 @@ Plus:
 - No swallowed errors — empty catch blocks are violations; handle, log, or propagate
 - Fail fast, fail loud — validate at system boundaries, not ten frames deep
 - No dead code, no commented-out code — git history is the archive
+- Idempotency — retries, webhooks and re-runs must not double-apply an effect; re-running a completed operation is safe — at-least-once delivery is the norm, not the exception
+- TOCTOU — validate and act as one step, or re-validate at point of use; a check at one boundary proves nothing at the next — state changes between check and use
+- Observability — failures logged with what failed, why, and context (IDs, not payloads); routine success stays silent. Logger MUST write locally always and MUST be able to pipe to a third-party telemetry sink (Datadog, CloudWatch, …), structured lines, no secrets/PII — a failure you cannot see or search is a failure that repeats
 
 TRACE BEFORE YOU TOUCH (the core rule — make it prominent):
 - Signature/constructor changes → find all callers and all DI/wiring bindings; update every call site in the same diff. An updated signature with stale callers is a broken build, not a review comment.
