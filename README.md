@@ -6,7 +6,7 @@ Unlike the other code rodent, this does not cost you $90 per month per member...
 
 A self-contained agent skill that sets up evidence-backed code review: tracing changes through their callers, checking security and business rules, and backing findings with evidence. Point your agent at `SKILL.md`, name a target repo, and it interrogates the repo's real architecture and teaches your agent to produce two outputs:
 
-- **`RULES.md`** — written into the target repo's root (the one repo-specific artifact): review rules (OWASP Top 10, trace-before-you-touch, conflict-resolution integrity), pruned and localised to the stack
+- **`RULES.md`** — written into the target repo's root (the one repo-specific artifact): review rules (OWASP Top 10, trace-before-you-touch, conflict-resolution integrity, idempotency, TOCTOU, observability), pruned and localised to the stack
 - **A global `code-review` skill** — built by the agent in its own skill system, in its own format. Nothing is copied from this file: the agent's skills live wherever its architecture puts them, and we can't cater to every agent's skill format, so this SKILL.md teaches what to write instead of shipping a fixed file. Installed once, it reviews any repo against that repo's `RULES.md`.
 
 MIT licensed. Review is fully static — tests and linters are never run before or during setup or review; the fixer offers them only after fixes are applied, and only on your say-so. It also checks business-rule adherence against available acceptance criteria, supplied by you or retrieved with the team's available tools and authorization. If none are available and you decline to provide them, the review proceeds using commit-message intent only and reports that limit; it does not invent acceptance criteria.
