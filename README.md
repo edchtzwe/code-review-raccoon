@@ -11,6 +11,8 @@ A self-contained agent skill that sets up evidence-backed code review: tracing c
 
 MIT licensed. Review is fully static — tests and linters are never run before or during setup or review; the fixer offers them only after fixes are applied, and only on your say-so. It also checks business-rule adherence against available acceptance criteria, supplied by you or retrieved with the team's available tools and authorization. If none are available and you decline to provide them, the review proceeds using commit-message intent only and reports that limit; it does not invent acceptance criteria.
 
+Every report opens with an **Executive Summary**: 2–5 bullets on what the code actually does — the trigger, the resulting response or side effect, and what is now avoided — taken from the diff and the callers traced, never from the ticket, PR description or commit messages. Code is reality; talk is cheap. A behaviour the diff cannot support is reported as unverified instead of being written up as fact.
+
 Reports end with a **Suggested Improvements** section, placed after the Fix Prompt: things the review noticed that could be done better, anywhere it actually looked. They are separate from findings, never counted in the verdict, never included in the Fix Prompt, and not fixed in a fix round unless you ask for one.
 
 ## How to use
