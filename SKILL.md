@@ -66,6 +66,9 @@ Plus:
 - No swallowed errors — empty catch blocks are violations; handle, log, or propagate
 - Fail fast, fail loud — validate at system boundaries, not ten frames deep
 - No dead code, no commented-out code — git history is the archive
+- Idempotency — retries, webhooks and re-runs must not double-apply an effect; re-running a completed operation is safe — at-least-once delivery is the norm, not the exception
+- TOCTOU — validate and act as one step, or re-validate at point of use; a check at one boundary proves nothing at the next — state changes between check and use
+- Observability — failures logged with what failed, why, and context (IDs, not payloads); routine success stays silent; structured lines, never secrets or PII — a failure you cannot see or search is a failure that repeats
 
 TRACE BEFORE YOU TOUCH (the core rule — make it prominent):
 - Signature/constructor changes → find all callers and all DI/wiring bindings; update every call site in the same diff. An updated signature with stale callers is a broken build, not a review comment.
@@ -133,8 +136,9 @@ You are doing code review work in <repo>. RULES.md at that repo's root is the au
 5. **Dependency trace** — prove trace-before-you-touch ran: signatures changed → callers found/updated; business-rule changes → consumers checked. Anything not verified goes in the ⚠️ Unverified line explicitly — silence is not an option.
 6. **Conflict audit** — for every merge/commit that resolved conflicts, re-examine each conflicted region against BOTH parents (`git show <parent>:<file>`). Assume the resolver may have cut corners: a clean diff proves nothing. Flag as suspect — weird, not quite right, or straight-up bullshit: one parent's changes vanished without a stated reason; a side taken wholesale without comparing intent; lines deleted just to clear markers; resolution claimed but never verified; result compiles but contradicts a parent's intent. Every suspect resolution is a finding citing the Conflict resolution integrity rule. Regions you could not compare go under ⚠️ Unverified — never silently pass them.
 7. **Business-rule adherence (BR pass)** — intent gathering is provider-agnostic: use the team's available forge, tracker, tools and authorization; do not assume a specific provider or credential. Always read commit messages for the confirmed review scope as context. Use ticket or acceptance-criteria content already supplied or available; otherwise, when a ticket can be retrieved using available tools and authorization, retrieve it. If no ticket or criteria are available, ask once: "Want to provide the ticket or acceptance criteria?" Declining is valid; proceed using commit-message intent only and report that limit. Compare implementation against stated acceptance criteria, citing evidence for unmet criteria; passing tests alone does not prove acceptance. Do not invent criteria or claim full acceptance-criteria coverage when none were available. Number these findings `BR-1`, `BR-2`, …, quote the criterion in the Rule column, and identify the intent source in the report.
-8. **Report** — emit the template below in the conversation only, never to a file. Sort findings by severity and number each ID series in that order. Suggested improvements get their own section AFTER the Fix Prompt — never inside it, never mixed into the findings.
-9. **Fix round** — when a report is handed back:
+8. **Executive summary — write this before the findings** — 2–5 bullets stating what the change actually does, taken only from the diff and the code you traced. Code is reality: the ticket, the PR description and the commit messages are intent, not behaviour — never copy them into the summary. Each bullet names the trigger, the resulting response or side effect, and what is now avoided, cited `File:Line`. Example shapes: "Payment processing returns as soon as the payment op completes — 2xx, 4xx, 5xx or any other HTTP response — and the partner API sync is queued, so the caller is not held while the sync runs" / "Partner sync now retries on selected error scenarios only — no retry on timeouts or 401/403". If the diff does not support a claim, it is not a summary line; behaviour you could not verify goes under ⚠️ Unverified, never into fluent summary prose.
+9. **Report** — emit the template below in the conversation only, never to a file. Sort findings by severity and number each ID series in that order. The report opens with the executive summary from step 8. Suggested improvements get their own section AFTER the Fix Prompt — never inside it, never mixed into the findings.
+10. **Fix round** — when a report is handed back:
    - First act: re-state your understanding of each finding (one line each) before editing anything.
    - **Suggestions are not findings.** Do not act on one during a fix round, and do not slip it in as a bonus repair. If the owner asks for one explicitly, it becomes a separate change with its own scope.
    - **Approved steps are exhaustive.** If a prescribed edit turns out wrong or impossible (applied migration, moved file, step already done), or the fix shape is ambiguous (index vs. query change), STOP before creating or editing anything: report why the step fails, propose options, wait for approval. Never substitute your own mechanism, however reasonable — improvisation outside the approved file table is exactly what this rule prevents. Stopping to ask is always allowed; proceeding on an unapproved deviation is not.
@@ -150,6 +154,10 @@ You are doing code review work in <repo>. RULES.md at that repo's root is the au
 Reviewed: <date> · Rules: RULES.md <version/commit>
 Scope: <confirmed head and base, or confirmed range and endpoint semantics; included/excluded working-tree categories>
 Intent context: <ticket and source | pasted acceptance criteria | commit messages only>
+
+## Executive Summary
+- <what the code now does: trigger → response or side effect → what is avoided, cited File:Line>
+- <second behaviour change, same shape; 2–5 bullets total, sourced from the diff, never from the ticket>
 
 ## Verdict: BLOCK / REQUEST CHANGES / APPROVE
 🔴 X blockers · 🟠 Y majors · 🔵 Z minors · ⚪ N nits
@@ -203,6 +211,7 @@ Things the review noticed that could be done better. They are not defects, do no
 Filling rules:
 - `File:Line` must be a line range — a path without lines forces the fixer to re-search. If a missing implementation has no precise changed line, cite the nearest relevant existing code and explain the absence; if no relevant location can be identified, record it as unverified instead of inventing a location.
 - A finding that can't name its rule is an Open Question, not a finding.
+- The executive summary describes code behaviour only, and every bullet cites `File:Line`. Ticket, PR description and commit messages are intent, never a source for it. Behaviour you could not verify from the diff goes under ⚠️ Unverified, never into fluent summary prose.
 - "Why" is one line with evidence; paragraphs go to Open Questions or split into two findings.
 - Wontfix/accepted-risk findings stay in the report, struck or excluded via the Fix Prompt — never silently deleted.
 - Exclusion provenance: the fix prompt's "Do not touch" list may only contain owner-confirmed exclusions. Everything else the reviewer would skip is surfaced as `Exclusions proposed — your call: F4 (reason)` — the reviewer proposes, the owner disposes; confirmed exclusions become "Do not touch" items on the next round.
